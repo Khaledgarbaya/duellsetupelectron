@@ -83,7 +83,9 @@ class EnvironmentSetup
         LogHelper.info("");
 
         downloadNpmBinary();
+        LogHelper.println("");
         downloadIojsBinaries();
+        LogHelper.println("");
         downloadElectronBinary();
 
         LogHelper.println("");
@@ -156,20 +158,26 @@ class EnvironmentSetup
 
         iojsBinaryPath = resolvePath(iojsBinaryPath);
 
-        if(downloadAnswer)
+        if(downloadAnswer && PlatformHelper.hostPlatform == Platform.WINDOWS)
         {
             PathHelper.mkdir(iojsBinaryPath);
 
             /// the actual download
-            DownloadHelper.downloadFile(iojsDownloadUrl, iojsBinaryPath);
+            DownloadHelper.downloadFile(iojsDownloadUrl, Path.join([iojsBinaryPath, "iojs.exe"]));
 
             if(iosjsLibDownloadUrl != null)
-                DownloadHelper.downloadFile(iosjsLibDownloadUrl, iojsBinaryPath);
-
-            /// create the directory
-            PathHelper.mkdir(iojsBinaryPath);
+                DownloadHelper.downloadFile(iosjsLibDownloadUrl, Path.join([iojsBinaryPath, "iojs.lib"]));
         }
+        else if(downloadAnswer && PlatformHelper.hostPlatform == Platform.MAC)
+        {
+            PathHelper.mkdir(iojsBinaryPath);
 
+            /// the actual download
+            DownloadHelper.downloadFile(iojsDownloadUrl);
+
+            /// the extraction
+            ExtractionHelper.extractFile(Path.withoutDirectory(iojsDownloadUrl), iojsBinaryPath, "");
+        }
     }
 
     private function downloadElectronBinary()
@@ -204,7 +212,7 @@ class EnvironmentSetup
         if(downloadAnswer)
         {
             /// the actual download
-            DownloadHelper.downloadFile(electronDownloadUrl);setupHXCPP();
+            DownloadHelper.downloadFile(electronDownloadUrl);
 
             /// create the directory
             PathHelper.mkdir(electronBinaryPath);
@@ -261,7 +269,7 @@ class EnvironmentSetup
 
         if(FileSystem.exists(npmBinaryPath))
         {
-            defines.set("NPM_BIN", FileSystem.fullPath(electronBinaryPath));
+            defines.set("NPM_BIN", FileSystem.fullPath(npmBinaryPath));
         }
         else
         {
