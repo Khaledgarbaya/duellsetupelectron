@@ -82,12 +82,16 @@ class EnvironmentSetup
         LogHelper.info("------\x1b[0m");
         LogHelper.info("");
 
+        installHaxeNode();
+        LogHelper.println("");
+
         downloadNpmBinary();
         LogHelper.println("");
+
         downloadIojsBinaries();
         LogHelper.println("");
-        downloadElectronBinary();
 
+        downloadElectronBinary();
         LogHelper.println("");
 
         setupHXCPP();
@@ -97,6 +101,10 @@ class EnvironmentSetup
         LogHelper.info("------\x1b[0m");
 
         return "success";
+    }
+    private function installHaxeNode(): Void
+    {
+
     }
 
     private function downloadNpmBinary(): Void
@@ -176,7 +184,7 @@ class EnvironmentSetup
             DownloadHelper.downloadFile(iojsDownloadUrl);
 
             /// the extraction
-            ExtractionHelper.extractFile(Path.withoutDirectory(iojsDownloadUrl), iojsBinaryPath, "");
+            ExtractionHelper.extractFile(Path.withoutDirectory(iojsDownloadUrl), iojsBinaryPath, "iojs-v3.3.1-darwin-x64");
         }
     }
 
