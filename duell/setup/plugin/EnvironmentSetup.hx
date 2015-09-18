@@ -63,6 +63,9 @@ class EnvironmentSetup
     private static var iosjsWin32Binary           = "http://iojs.org/dist/v3.3.1/win-x86/iojs.exe";
     private static var iosjsWin32LibBinary        = "http://iojs.org/dist/v3.3.1/win-x86/iojs.lib";
 
+    /// hxnodejs
+    private static var hxNodeJSRepoUrl: String    = "git@github.com:HaxeFoundation/hxnodejs.git";
+
     /*Variables setup*/
     private var electronBinaryPath: String        = null;
     private var npmBinaryPath: String             = null;
@@ -104,7 +107,10 @@ class EnvironmentSetup
     }
     private function installHaxeNode(): Void
     {
-
+        var targetPath: String = Path.join([DuellConfigHelper.getDuellConfigFolderLocation(), "lib"]);
+        CommandHelper.runCommand(targetPath, "git", ["clone", hxNodeJSRepoUrl], {errorMessage: "doawloading hxnodejs Lib"});
+        CommandHelper.runCommand(Path.join([DuellConfigHelper.getDuellConfigFolderLocation(), "lib", "hxnodejs"]), "haxelib",
+                                ["dev", "hxnodejs", "."], {errorMessage: "setting hxnodejs as dev lib"});
     }
 
     private function downloadNpmBinary(): Void
