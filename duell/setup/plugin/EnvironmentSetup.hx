@@ -108,11 +108,11 @@ class EnvironmentSetup
     private function installHaxeNode(): Void
     {
         var targetPath: String = Path.join([DuellConfigHelper.getDuellConfigFolderLocation(), "lib"]);
-        var defaultHxNodeJSLibPath: String = Path.join([targetPath, "lib", "hxnodejs"]);
-        var hxnodejsPath: String = ""
+        var defaultHxNodeJSLibPath: String = Path.join([targetPath, "hxnodejs"]);
+        var hxnodejsPath: String = "";
 
         var cloneAnswer = AskHelper.askYesOrNo("[Required]clone hxnodejs library from "+ hxNodeJSRepoUrl +"?");
-        var hxNodeJSLibPath = AskHelper.askString("hxnodejs library Location", defaultHxNodeJSLibPath);
+        hxnodejsPath = AskHelper.askString("hxnodejs library Location", defaultHxNodeJSLibPath);
 
         if(hxnodejsPath == "")
             hxnodejsPath = defaultHxNodeJSLibPath;
@@ -120,18 +120,11 @@ class EnvironmentSetup
         hxnodejsPath = resolvePath(hxnodejsPath);
         if (cloneAnswer)
         {
-            if(FileSystem.exists(hxnodejsPath))
-            {
-                FileSystem.deleteDirectory(hxnodejsPath);
-            }
-            CommandHelper.runCommand(targetPath, "git", ["clone", hxNodeJSRepoUrl], {errorMessage: "doawloading hxnodejs Lib"});
-            CommandHelper.runCommand(Path.join([targetPath, "lib", "hxnodejs"]), "haxelib",
-                                    ["dev", "hxnodejs", "."], {errorMessage: "setting hxnodejs as dev lib"});
+            CommandHelper.runCommand(hxnodejsPath, "git", ["clone", hxNodeJSRepoUrl, "."], {errorMessage: "doawloading hxnodejs Lib"});
         }
-
-        CommandHelper.runCommand(targetPath, "git", ["clone", hxNodeJSRepoUrl], {errorMessage: "doawloading hxnodejs Lib"});
-        CommandHelper.runCommand(Path.join([targetPath, "lib", "hxnodejs"]), "haxelib",
+        CommandHelper.runCommand(hxnodejsPath, "haxelib",
                                 ["dev", "hxnodejs", "."], {errorMessage: "setting hxnodejs as dev lib"});
+
     }
 
     private function downloadNpmBinary(): Void
