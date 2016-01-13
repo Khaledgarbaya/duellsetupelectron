@@ -26,52 +26,17 @@
 
 package duell.setup.plugin;
 
-import duell.helpers.PlatformHelper;
-import duell.helpers.AskHelper;
-import duell.helpers.DownloadHelper;
-import duell.helpers.ExtractionHelper;
-import duell.helpers.PathHelper;
 import duell.helpers.LogHelper;
-import duell.helpers.StringHelper;
 import duell.helpers.CommandHelper;
-import duell.helpers.HXCPPConfigXMLHelper;
 import duell.helpers.DuellConfigHelper;
-
-import duell.objects.HXCPPConfigXML;
+import duell.objects.DuellLib;
 
 import haxe.io.Path;
-import sys.FileSystem;
-
-using StringTools;
 
 class EnvironmentSetup
 {
-    /* Common Binaries */
-    private static var npmAllOSBinaryUrl: String = "http://nodejs.org/download/release/npm/npm-1.1.0-1.zip";
+    public static inline var NODEJS_VERSION = "master";
 
-    /*Mac Binaries*/
-    private static var electronMacBinary          = "http://github.com/atom/electron/releases/download/v0.32.3/electron-v0.32.3-darwin-x64.zip";
-    private static var iojsMacBinary              = "http://iojs.org/dist/latest/iojs-v3.3.1-darwin-x64.tar.gz";
-
-    /* Windows Binaries */
-    /// common
-    private static var electronWindowsBinary      = "http://github.com/atom/electron/releases/download/v0.32.3/electron-v0.32.3-win32-x64-symbols.zip";
-    /// x64 architecture
-    private static var iosjsWin64Binary           = "http://iojs.org/dist/v3.3.1/win-x64/iojs.exe";
-    private static var iosjsWin64LibBinary        = "http://iojs.org/dist/v3.3.1/win-x64/iojs.lib";
-    /// x86 architecture
-    private static var iosjsWin32Binary           = "http://iojs.org/dist/v3.3.1/win-x86/iojs.exe";
-    private static var iosjsWin32LibBinary        = "http://iojs.org/dist/v3.3.1/win-x86/iojs.lib";
-
-    /// hxnodejs
-    private static var hxNodeJSRepoUrl: String    = "git@github.com:HaxeFoundation/hxnodejs.git";
-
-    /*Variables setup*/
-    private var electronBinaryPath: String        = null;
-    private var npmBinaryPath: String             = null;
-    private var iojsBinaryPath: String            = null;
-    private var iojsLibBinaryPath: String         = null;
-    private var hxcppConfigPath: String           = null;
     public function new()
     {
 
@@ -85,19 +50,14 @@ class EnvironmentSetup
         LogHelper.info("------\x1b[0m");
         LogHelper.info("");
 
-        installHaxeNode();
+        installDuellNodeJS();
         LogHelper.println("");
 
-        downloadNpmBinary();
+        setupDuellNodeJS();
         LogHelper.println("");
 
-        downloadIojsBinaries();
+        installElectronPackage();
         LogHelper.println("");
-
-        downloadElectronBinary();
-        LogHelper.println("");
-
-        setupHXCPP();
 
         LogHelper.info("\x1b[2m------");
         LogHelper.info("end");
@@ -105,226 +65,46 @@ class EnvironmentSetup
 
         return "success";
     }
-    private function installHaxeNode(): Void
+
+    private function installDuellNodeJS(): Void
     {
-        var targetPath: String = Path.join([DuellConfigHelper.getDuellConfigFolderLocation(), "lib"]);
-        var defaultHxNodeJSLibPath: String = Path.join([targetPath, "hxnodejs"]);
-        var hxnodejsPath: String = "";
-
-        var cloneAnswer = AskHelper.askYesOrNo("[Required]clone hxnodejs library from "+ hxNodeJSRepoUrl +"?");
-        hxnodejsPath = AskHelper.askString("hxnodejs library Location", defaultHxNodeJSLibPath);
-
-        if(hxnodejsPath == "")
-            hxnodejsPath = defaultHxNodeJSLibPath;
-
-        hxnodejsPath = resolvePath(hxnodejsPath);
-        if (cloneAnswer)
+        return;
+        var duellLib = DuellLib.getDuellLib("nodejs", NODEJS_VERSION);
+        if (duellLib.isInstalled())
         {
-            CommandHelper.runCommand(hxnodejsPath, "git", ["clone", hxNodeJSRepoUrl, "."], {errorMessage: "doawloading hxnodejs Lib"});
+            LogHelper.info(" - installing duell nodejs library");
+            duellLib.install();
         }
-        CommandHelper.runCommand(hxnodejsPath, "haxelib",
-                                ["dev", "hxnodejs", "."], {errorMessage: "setting hxnodejs as dev lib"});
-
-    }
-
-    private function downloadNpmBinary(): Void
-    {
-        var npmDownloadUrl: String = npmAllOSBinaryUrl;
-        var defaultInstallPathForNpm = haxe.io.Path.join([DuellConfigHelper.getDuellConfigFolderLocation(), "SDKs", "npm"]);
-
-        var downloadAnswer = AskHelper.askYesOrNo("Download and install the npm Binary?");
-
-        npmBinaryPath = AskHelper.askString("npm Binary Location", defaultInstallPathForNpm);
-
-        npmBinaryPath = npmBinaryPath.trim();
-
-        if(npmBinaryPath == "")
-            npmBinaryPath = defaultInstallPathForNpm;
-
-        npmBinaryPath = resolvePath(npmBinaryPath);
-
-        if(downloadAnswer)
+        else if (duellLib.updateNeeded())
         {
-            /// the actual download
-            DownloadHelper.downloadFile(npmDownloadUrl);
-
-            /// create the directory
-            PathHelper.mkdir(npmBinaryPath);
-
-            /// the extraction
-            ExtractionHelper.extractFile(Path.withoutDirectory(npmDownloadUrl), npmBinaryPath, "");
+            LogHelper.info(" - updating duell nodejs library");
+            duellLib.update();
         }
     }
 
-    private function downloadIojsBinaries()
+    private function setupDuellNodeJS(): Void
     {
-        var iojsDownloadUrl: String = "";
-        var iosjsLibDownloadUrl: String = null;/// only needed in windows os
-        var defaultInstallPathForIojs = haxe.io.Path.join([DuellConfigHelper.getDuellConfigFolderLocation(), "SDKs", "iojs"]);
-
-        /* Downloading ios js*/
-        if (PlatformHelper.hostPlatform == Platform.WINDOWS)
+        LogHelper.info(" - setting up duell nodejs library");
+        CommandHelper.runHaxelib("", ["run", "duell_duell", "run", "nodejs", "-setup"],
         {
-            iojsDownloadUrl = PlatformHelper.hostArchitecture == Architecture.X64 ? iosjsWin64Binary :  iosjsWin32Binary;
-            iosjsLibDownloadUrl = PlatformHelper.hostArchitecture == Architecture.X64 ? iosjsWin64LibBinary :  iosjsWin32LibBinary;
-        }
-        else if (PlatformHelper.hostPlatform == Platform.MAC)
-        {
-            iojsDownloadUrl = iojsMacBinary;
-            iosjsLibDownloadUrl = null;
-        }
-        var downloadAnswer = AskHelper.askYesOrNo("Download and install the IOJS Binaries?");
-
-        /// ask for the instalation path
-        iojsBinaryPath = AskHelper.askString("IOJS Binaries Location", defaultInstallPathForIojs);
-
-        /// clean up a bit
-        iojsBinaryPath = iojsBinaryPath.trim();
-
-        if(iojsBinaryPath == "")
-            iojsBinaryPath = defaultInstallPathForIojs;
-
-        iojsBinaryPath = resolvePath(iojsBinaryPath);
-
-        if(downloadAnswer && PlatformHelper.hostPlatform == Platform.WINDOWS)
-        {
-            PathHelper.mkdir(iojsBinaryPath);
-
-            /// the actual download
-            DownloadHelper.downloadFile(iojsDownloadUrl, Path.join([iojsBinaryPath, "iojs.exe"]));
-
-            if(iosjsLibDownloadUrl != null)
-                DownloadHelper.downloadFile(iosjsLibDownloadUrl, Path.join([iojsBinaryPath, "iojs.lib"]));
-        }
-        else if(downloadAnswer && PlatformHelper.hostPlatform == Platform.MAC)
-        {
-            PathHelper.mkdir(iojsBinaryPath);
-
-            /// the actual download
-            DownloadHelper.downloadFile(iojsDownloadUrl);
-
-            /// the extraction
-            ExtractionHelper.extractFile(Path.withoutDirectory(iojsDownloadUrl), iojsBinaryPath, "iojs-v3.3.1-darwin-x64");
-        }
+            logOnlyIfVerbose: false
+        });
     }
 
-    private function downloadElectronBinary()
+    private function installElectronPackage(): Void
     {
-        /// variable setup
-        var electronDownloadUrl = "";
-        var defaultInstallPath = haxe.io.Path.join([DuellConfigHelper.getDuellConfigFolderLocation(), "SDKs", "electron"]);
+        LogHelper.info(" - installing electron node package");
 
-        /// get the download url for the host platform
-        if (PlatformHelper.hostPlatform == Platform.WINDOWS)
+        var electronNodeFolder = Path.join([DuellConfigHelper.getDuellConfigFolderLocation(), "electron"]);
+
+        CommandHelper.runHaxelib("", ["run", "duell_duell", "run", "nodejs", "-npm", "config", "set", "prefix", electronNodeFolder],
         {
-            electronDownloadUrl = electronWindowsBinary;
-        }
-        else if (PlatformHelper.hostPlatform == Platform.MAC)
+            logOnlyIfVerbose: false
+        });
+
+        CommandHelper.runHaxelib("", ["run", "duell_duell", "run", "nodejs", "-npm", "install", "electron-prebuilt", "-g"],
         {
-            electronDownloadUrl = electronMacBinary;
-        }
-
-        var downloadAnswer = AskHelper.askYesOrNo("Download and install the Electron Binary?");
-
-        /// ask for the instalation path
-        electronBinaryPath = AskHelper.askString("Electron Binary Location", defaultInstallPath);
-
-        /// clean up a bit
-        electronBinaryPath = electronBinaryPath.trim();
-
-        if(electronBinaryPath == "")
-            electronBinaryPath = defaultInstallPath;
-
-        electronBinaryPath = resolvePath(electronBinaryPath);
-
-        if(downloadAnswer)
-        {
-            /// the actual download
-            DownloadHelper.downloadFile(electronDownloadUrl);
-
-            /// create the directory
-            PathHelper.mkdir(electronBinaryPath);
-
-            /// the extraction
-            ExtractionHelper.extractFile(Path.withoutDirectory(electronDownloadUrl), electronBinaryPath, "");
-        }
-    }
-    private function setupHXCPP()
-    {
-        hxcppConfigPath = HXCPPConfigXMLHelper.getProbableHXCPPConfigLocation();
-
-        if(hxcppConfigPath == null)
-        {
-            throw "Could not find the home folder, no HOME variable is set. Can't find hxcpp_config.xml";
-        }
-
-        var hxcppXML = HXCPPConfigXML.getConfig(hxcppConfigPath);
-
-        var existingDefines : Map<String, String> = hxcppXML.getDefines();
-
-        var newDefines : Map<String, String> = getDefinesToWriteToHXCPP();
-
-        LogHelper.println("\x1b[1mWriting new definitions to hxcpp config file\x1b[0m");
-
-        for(def in newDefines.keys())
-        {
-            LogHelper.info("\x1b[1m        " + def + "\x1b[0m:" + newDefines.get(def));
-        }
-
-        for(def in existingDefines.keys())
-        {
-            if(!newDefines.exists(def))
-            {
-                newDefines.set(def, existingDefines.get(def));
-            }
-        }
-
-        hxcppXML.writeDefines(newDefines);
-    }
-
-    private function getDefinesToWriteToHXCPP() : Map<String, String>
-    {
-        var defines = new Map<String, String>();
-
-        if(FileSystem.exists(electronBinaryPath))
-        {
-            defines.set("ELECTRON_BIN", FileSystem.fullPath(electronBinaryPath));
-        }
-        else
-        {
-            throw "Path specified for electron binary doesn't exist!";
-        }
-
-        if(FileSystem.exists(npmBinaryPath))
-        {
-            defines.set("NPM_BIN", FileSystem.fullPath(npmBinaryPath));
-        }
-        else
-        {
-            throw "Path specified for npm binary doesn't exist!";
-        }
-
-        if(FileSystem.exists(iojsBinaryPath))
-        {
-            defines.set("IOJS_BIN", FileSystem.fullPath(iojsBinaryPath));
-        }
-        else
-        {
-            throw "Path specified for iojs binary doesn't exist!";
-        }
-
-        defines.set("ELECTRON_SETUP", "YES");
-
-        return defines;
-    }
-
-    private function resolvePath(path: String): String
-    {
-        path = PathHelper.unescape(path);
-
-        if (PathHelper.isPathRooted(path))
-            return path;
-
-        return Path.join([Sys.getCwd(), path]);
+            logOnlyIfVerbose: false
+        });
     }
 }
